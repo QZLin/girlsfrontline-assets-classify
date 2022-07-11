@@ -1,9 +1,8 @@
 # Attention! This file require powershell 7
-Set-Location $PSScriptRoot
-$root = Get-Location
+Push-Location $PSScriptRoot
 
 $python_path = "$PSScriptRoot/girlsfrontline-resources-extract"
-$extract_prj = "C:\Users\13439\Downloads\girlsfrontline-resources-extract"
+$extract_prj = "./girlsfrontline-resources-extract"
 $acb2wav_py = "acb2wav.py"
 
 $env:Path = $python_path + ';' + $env:Path
@@ -17,4 +16,4 @@ foreach ($file in Get-ChildItem "$PSScriptRoot/acb.bytes/") {
     }
 }
 
-Set-Location $root
+Pop-Location

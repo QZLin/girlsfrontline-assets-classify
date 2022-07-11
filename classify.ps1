@@ -1,60 +1,61 @@
-# Attention! This file require powershell 7
-Set-Location $PSScriptRoot
-$root = Get-Location
+#Requires -Version 7.0
+$PackageName = "com.sunborn.girlsfrontline.cn"
+$SourceLocation = "$PSScriptRoot/source/$PackageName/files/Android/New"
+Push-Location $SourceLocation
+
+function mkdir_ {
+    param ([Parameter(Mandatory = $true, ValueFromPipeline = $true)]$location)
+    if (Test-Path $location) {
+        $object = Get-Item $location
+        if ( $object -is [System.IO.DirectoryInfo] ) {}
+        else {
+            Write-Error "File already exist: $location"
+            Exit 1
+        }  
+    }
+    else {
+        New-Item -ItemType Directory $location -Force
+    }
+    $object
+}
 
 
 ### classify by file type
-mkdir "ab"  -ErrorAction Ignore
-mkdir "acb.bytes"  -ErrorAction Ignore
-mkdir "usm.bytes"  -ErrorAction Ignore
+mkdir_ "ab"
+mkdir_ "acb.bytes"
+mkdir_ "usm.bytes"
 Move-Item "*.ab" "ab"
 Move-Item "*.acb.bytes" "acb.bytes"
 Move-Item "*.usm.bytes" "usm.bytes"
 
 ### ab
-Set-Location "ab"
+Push-Location "ab"
 $classify = "character", "live2d", "asset", "resource", "atlasclips", "sprite"
-foreach ($name in $classify) {
-    mkdir $name -ErrorAction Ignore
+$classify | ForEach-Object { mkdir_ $_ }
+foreach ($class in $classify) {
+    Get-ChildItem | Where-Object { $_ -match "$class.*\.ab$" } | Move-Item -Destination $class
 }
-foreach ($file in Get-ChildItem) {
-    foreach ($name in $classify) {
-        if ($file -match "$name.*\.ab$") {
-            Move-Item $file $name
-        }
-    }
-}
-Set-Location $root
+Pop-Location
 
 ### ab/asset
-Set-Location "ab/asset"
+Push-Location "ab/asset"
 $classify = "assetparticle", "assetmapchapter", "assetmapo", "avg"
-foreach ($name in $classify) {
-    mkdir $name -ErrorAction Ignore
+$classify | ForEach-Object { mkdir_ $_ }
+foreach ($class in $classify) {
+    Get-ChildItem | Where-Object { $_ -match "$class.*\.ab$" } | Move-Item -Destination $class
 }
-foreach ($file in Get-ChildItem) {
-    foreach ($name in $classify) {
-        if ($file -match "$name.*\.ab$") {
-            Move-Item $file $name
-        }
-    }
-}
-Set-Location $root
+Pop-Location
 
 ### acb.bytes
+Push-Location "acb.bytes"
 ## generate characters list
-Set-Location "MonoBehaviour"
-$classify = ../pyfiles/gen-charlist-resdata.py
-$classify = $classify -split ","
-Set-Location $root
-## classify
-Set-Location "acb.bytes"
-mkdir "char"  -ErrorAction Ignore
-foreach ($file in Get-ChildItem) {
-    foreach ($name in $classify) {
-        if ($file.Name -match "^$name[_(Live2D)(buhuo)(\d)]*\.acb\.bytes$") {
-            Move-Item $file "char"
-        }
-    }
+# Run structure_info.py to generate path.txt:
+# structure_info.py -i .\MonoBehaviour\ResData.json -o .\MonoBehaviour\path.txt
+$name_list = python "$PSScriptRoot/char_list.py" -i "$PSScriptRoot/MonoBehaviour/path.txt" -s
+mkdir_ "char" 
+foreach ($name in $name_list) {
+    Get-ChildItem | Where-Object { $_.Name -match "^$name[_(Live2D)(buhuo)(\d)]*\.acb\.bytes$" } | Move-Item -Destination "char"
 }
-Set-Location $root
+Pop-Location
+
+Pop-Location
